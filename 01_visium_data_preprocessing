@@ -73,7 +73,7 @@ STutility::ImagePlot(dat, method = "raster")
 dat <- STutility::ManualAnnotation(dat)
 
 ## Save the data for reproducibility
-save(dat, file = "dat.annot.RData")
+#save(dat, file = "dat.annot.RData")
 
 
 
@@ -115,14 +115,16 @@ pxs_split <- setNames(lapply(pxs_split, function(pxs) {
 }), nm = names(pxs_split))
 
 ## Assign crop geometries to crop.geoms
+index <- 1
 for (i in seq_along(pxs_split)) {
   for (j in seq_along(pxs_split[[i]])) {
-    crop.geoms[[length(crop.geoms) + 1]]$geom <- pxs_split[[i]][[j]]
+    crop.geoms[[index]]$geom <- pxs_split[[i]][[j]]
+    index <- index + 1
   }
 }
 
 ## Save the data for reproducibility
-save(crop.geoms, file = "crop.geoms.RData")
+#save(crop.geoms, file = "crop.geoms.RData")
 
 ## H&E staining images with cropped windows
 ## Function to plot cropped windows on H&E images
@@ -171,7 +173,7 @@ dat.cropped <- STutility::CropImages(dat.filtered3,
                                      verbose = TRUE)
 
 ## Save the data for reproducibility
-save(dat.cropped, file = "dat.cropped.RData")
+#save(dat.cropped, file = "dat.cropped.RData")
 
 
 
