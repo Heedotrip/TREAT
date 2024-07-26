@@ -1,0 +1,215 @@
+#### Load necessary packages ----
+required_packages <- c("BiocManager", "ggplot2", "dplyr", "magrittr", "hdf5r")
+bioconductor_packages <- c("Seurat")
+stutility_repo <- "jbergenstrahle/STUtility"
+
+#### Function to install and load packages
+install_and_load <- function(package_list) {
+
+  ## Identify new packages to install
+  new_packages <- package_list[!(package_list %in% installed.packages()[,"Package"])]
+
+  ## Install new packages if any
+  if (length(new_packages) > 0) {
+    install.packages(new_packages)
+  }
+  
+  ## Load required packages
+  sapply(package_list, require, character.only = TRUE)
+}
+
+## Install and load required packages
+install_and_load(c(required_packages, bioconductor_packages))
+
+## Install and load STUtility package from GitHub if not already installed
+if (!"STUtility" %in% installed.packages()[,"Package"]) {
+  remotes::install_github(stutility_repo, force = TRUE)
+}
+
+## Load STUtility and Seurat packages
+library(STutility)
+
+
+
+
+
+#### Assemble spaceranger output files ----
+## Define data path
+path_data <- paste0(getwd(), "/data")
+
+## Define functions to get file paths for different samples
+get_file_paths <- function(path, file_pattern) {
+  Sys.glob(paths = paste0(path, file_pattern))
+}
+
+## TREAT
+samples1 <- get_file_paths(path_data, "/spaceranger_output/TREAT/*/filtered_feature_bc_matrix.h5")
+imgs1 <- get_file_paths(path_data, "/spaceranger_output/TREAT/*/spatial/tissue_hires_image.png")
+spotfiles1 <- get_file_paths(path_data, "/spaceranger_output/TREAT/*/spatial/tissue_positions.csv")
+json1 <- get_file_paths(path_data, "/spaceranger_output/TREAT/*/spatial/scalefactors_json.json")
+
+## NT
+samples2 <- get_file_paths(path_data, "/spaceranger_output/NT/*/filtered_feature_bc_matrix.h5")
+imgs2 <- get_file_paths(path_data, "/spaceranger_output/NT/*/spatial/tissue_hires_image.png")
+spotfiles2 <- get_file_paths(path_data, "/spaceranger_output/NT/*/spatial/tissue_positions.csv")
+json2 <- get_file_paths(path_data, "/spaceranger_output/NT/*/spatial/scalefactors_json.json")
+
+## Create a data frame with all file paths
+infoTable <- data.frame(
+  samples = c(samples1, samples2),
+  imgs = c(imgs1, imgs2),
+  spotfiles = c(spotfiles1, spotfiles2),
+  json = c(json1, json2)
+)
+
+## Add array IDs to the data frame
+infoTable <- cbind(infoTable,
+                   arrayID = c("V43U28-338_A1", "V43U28-338_D1",
+                               "V43U27-081_A1", "V43U27-081_D1")
+)
+
+## Load and merge metadata
+curated_metadata <- openxlsx::read.xlsx(paste0(path_data, "/sheets/sample_metadata.xlsx"))
+colnames(curated_metadata) <- c("sample", "condition", "arrayID", "spots_under_tissue",
+                                "genes_detected", "fraction_spots_under_tissue",
+                                "mean_reads_per_spot", "mean_reads_under_tissue_spot",
+                                "median_genes_per_spot", "median_UMIs_per_spot",
+                                "saturation", "reads_mapped_to_probe_set",
+                                "reads_mapped_confidently_to_probe_set",
+                                "reads_mapped_confidently_to_filtered_probe_set")
+
+infoTable <- merge(infoTable, curated_metadata, by = "arrayID")
+infoTable
+
+
+## Load mouse brain Visium data
+dat <- STutility::InputFromTable(infotable = infoTable)
+
+## Load images
+dat <- STutility::LoadImages(dat, time.resolve = FALSE)
+STutility::ImagePlot(dat, method = "raster")
+
+
+
+## Perform manual annotation
+dat <- STutility::ManualAnnotation(dat)
+
+## Save the annotated data
+save(dat, file = "dat.annot.RData")
+
+
+
+## Make a cropped image with manually annotated regions ----
+crop.geoms <- STutility::GetCropWindows(dat,
+                                        keep.all.spots = TRUE)
+crop.geoms
+
+## Create a new column with the organoid labels
+datSplit <- dat
+datSplit$organoid <- factor(datSplit$labels,
+                            levels = unique(datSplit$labels))
+organoid_cols <- setNames(RColorBrewer::brewer.pal(n = 12,
+                                                   name = "Paired"),
+                          nm = unique(datSplit$labels))
+
+## Subset data to exclude non-labelled spots
+datSplit <- STutility::SubsetSTData(datSplit,
+                                    expression = labels %in% unique(datSplit$labels))
+
+## Get pixel coordinates
+pxs <- cbind(STutility::GetStaffli(datSplit)@meta.data[, c("pixel_x",
+                                                           "pixel_y",
+                                                           "sample")],
+             selection = datSplit$organoid)
+pxs_split <- split(pxs, pxs$sample)
+pxs_split
+
+## Calculate crop geometries
+pxs_split <- setNames(lapply(pxs_split, function(pxs) {
+  dat.split <- lapply(unique(pxs$selection), function(cond) {
+    subset_pxs <- pxs[pxs$selection == cond, ]
+    m <- apply(subset_pxs[, 1:2], 2, range) ## Find centroids
+    centroid <- apply(m, 2, mean) ## Find centroids
+    hw <- apply(m, 2, function(x) round(diff(range(x))))
+    ## Get heiGHt/width
+    offsets <- (centroid - c(max(hw[1])/2, max(hw[2])/2)) ## Find offsets
+    geometry <- magick::geometry_area(width = max(hw[1]), 
+                                      height = max(hw[2]),
+                                      x_off = offsets[1],
+                                      y_off = offsets[2])
+    return(geometry)
+  })
+}), nm = names(pxs_split))
+
+## Assign crop geometries to crop.geoms
+index <- 1
+
+for (i in seq_along(pxs_split)) {
+  for (j in seq_along(pxs_split[[i]])) {
+    crop.geoms[[index]]$geom <- pxs_split[[i]][[j]]
+    index <- index + 1
+  }
+}
+
+crop.geoms
+save(crop.geoms, file = "crop.geoms.RData")
+
+
+## H&E staining images with cropped windows
+## Function to plot cropped windows on H&E images
+plot_cropped_windows <- function(image, crop_geoms) {
+  corners_list <- list()
+  for (i in 1:length(crop_geoms)) {
+    split_data <- strsplit(crop_geoms[[i]]$geom, "x|\\+")
+    corners_list[[i]] <- as.numeric(unlist(split_data))
+  }
+  corners <- do.call(rbind, corners_list)
+  plot(image)
+  rect(xleft = corners[, 3],
+       ybottom = corners[, 4],
+       xright = corners[, 3] + corners[, 1],
+       ytop = corners[, 4] + corners[, 2])
+}
+
+## cropped image visualization
+im <- magick::image_read(STutility::GetStaffli(dat)@imgs[1]) %>%
+  imager::magick2cimg()
+plot_cropped_windows(im, crop.geoms[c(1:2)])
+
+im <- magick::image_read(STutility::GetStaffli(dat)@imgs[2]) %>%
+  imager::magick2cimg()
+plot_cropped_windows(im, crop.geoms[c(3:4)])
+
+im <- magick::image_read(STutility::GetStaffli(dat)@imgs[3]) %>%
+  imager::magick2cimg()
+plot_cropped_windows(im, crop.geoms[c(5:6)])
+
+im <- magick::image_read(STutility::GetStaffli(dat)@imgs[4]) %>%
+  imager::magick2cimg()
+plot_cropped_windows(im, crop.geoms[c(7:8)])
+
+
+
+## Filter dat
+dat.filtered <- dat %>%
+  STutility::SubsetSTData(nCount_RNA >= 500 & nFeature_RNA >= 500)
+
+## Convert to assay 3
+dat.filtered3 <- dat.filtered
+class(dat.filtered3[["RNA"]])
+
+## https://satijalab.org/seurat/articles/seurat5_essential_commands
+dat.filtered3[["RNA"]] <- CreateAssayObject(counts = dat.filtered3[["RNA"]]$counts)
+
+## Confirm data format
+class(dat.filtered3[["RNA"]])
+
+## Crop images
+dat.cropped <- STutility::CropImages(dat.filtered3,
+                                     crop.geometry.list = crop.geoms,
+                                     xdim = 500,
+                                     time.resolve = TRUE,
+                                     verbose = TRUE)
+
+## Save crop geometries
+save(dat.cropped, file = "dat.cropped.RData")
