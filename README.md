@@ -1,5 +1,5 @@
 # *TREAT paper title*
-선생님<sup>*</sup>, 선생님~§~, 교수님~*~, 교수님^*^
+선생님<sup>\*</sup>, 선생님<sup>*</sup>, 교수님<sup>*</sup>, 교수님<sup>*</sup>
 § These authors contributed equally to the work
 * Corresponding authors
 
