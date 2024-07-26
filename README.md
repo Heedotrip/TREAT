@@ -1,2 +1,2 @@
-# TREAT
+## TREAT
 spatial transcriptomics data analysis
