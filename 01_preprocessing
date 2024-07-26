@@ -33,6 +33,7 @@ library(STutility)
 
 
 
+
 #### Assemble spaceranger output files ----
 ## Define data path
 path_data <- paste0(getwd(), "/data")
@@ -82,20 +83,27 @@ infoTable <- merge(infoTable, curated_metadata, by = "arrayID")
 infoTable
 
 
-## Load mouse brain Visium data
+
+
+
+
+#### Load mouse brain Visium data ----
 dat <- STutility::InputFromTable(infotable = infoTable)
 
 ## Load images
 dat <- STutility::LoadImages(dat, time.resolve = FALSE)
 STutility::ImagePlot(dat, method = "raster")
 
-
-
 ## Perform manual annotation
+## Here, the spots were labeled into two major categories:
+## "TREAT" and "NT"
 dat <- STutility::ManualAnnotation(dat)
 
 ## Save the annotated data
 save(dat, file = "dat.annot.RData")
+
+
+
 
 
 
@@ -143,17 +151,14 @@ pxs_split <- setNames(lapply(pxs_split, function(pxs) {
 
 ## Assign crop geometries to crop.geoms
 index <- 1
-
 for (i in seq_along(pxs_split)) {
   for (j in seq_along(pxs_split[[i]])) {
     crop.geoms[[index]]$geom <- pxs_split[[i]][[j]]
     index <- index + 1
   }
 }
-
 crop.geoms
 save(crop.geoms, file = "crop.geoms.RData")
-
 
 ## H&E staining images with cropped windows
 ## Function to plot cropped windows on H&E images
@@ -171,7 +176,7 @@ plot_cropped_windows <- function(image, crop_geoms) {
        ytop = corners[, 4] + corners[, 2])
 }
 
-## cropped image visualization
+## Confirm cropped section
 im <- magick::image_read(STutility::GetStaffli(dat)@imgs[1]) %>%
   imager::magick2cimg()
 plot_cropped_windows(im, crop.geoms[c(1:2)])
