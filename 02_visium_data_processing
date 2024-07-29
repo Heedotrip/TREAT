@@ -336,3 +336,13 @@ FeatureOverlay(dat.masked,
                label.by = "labels",
                show.legend = F) &
   theme(plot.margin = margin(t = 0, r = 10, b = , l = 10, unit = "pt"))
+
+
+
+
+
+#### Final summary ----
+cat("Processing complete.\n")
+cat("Initial spots:", ncol(dat), "\n")
+cat("Filtered spots:", ncol(dat.filtered), "\n")
+cat("Final cropped spots:", ncol(dat.cropped), "\n")
