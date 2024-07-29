@@ -14,4 +14,4 @@ Seurat/STUtility object were generated from the Space Ranger output files, using
 The data processing workflows have been illustrated here.<br>
 
 
-![all_gathered2](https://github.com/user-attachments/assets/9391431c-2226-44a9-b73c-b378b5bcf33b)
+[all_gathered.pdf](https://github.com/user-attachments/files/16406949/all_gathered.pdf)
