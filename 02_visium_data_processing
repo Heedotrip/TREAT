@@ -1,0 +1,338 @@
+## ========================================
+## Spatial Transcriptomics Analysis Pipeline for NATURE Paper
+## ========================================
+## Author: [Seunghee Jeong]
+## Date: [Current Date]
+## Description: This script processes and analyzes spatial transcriptomics data
+##              for treated (TREAT) and non-treated (NT) mouse brain samples.
+## ========================================
+
+#### Load necessary packages ----
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+pacman::p_load(BiocManager, ggplot2, dplyr, magrittr, hdf5r, Seurat, openxlsx, remotes)
+
+# Install STUtility from GitHub if not already installed
+if (!"STUtility" %in% installed.packages()[,"Package"]) {
+  remotes::install_github("jbergenstrahle/STUtility", force = TRUE)
+}
+library(STutility)
+
+
+
+
+#### Load data ----
+load("dat.cropped.RData")
+
+
+
+
+#### Data processing and analysis ----
+dat.masked <- dat.cropped %>%
+  STutility::SubsetSTData(labels != "NT2_1") %>%
+  STutility::SubsetSTData(labels != "TREAT2_1") %>%
+  Seurat::SCTransform() %>%
+  Seurat::RunPCA() %>%
+  Seurat::RunTSNE() %>%
+  Seurat::RunUMAP(reduction = "pca", dims = 1:25) %>%
+  Seurat::FindNeighbors(reduction = "pca", dims = 1:25) %>%
+  Seurat::FindClusters() %>%
+  Seurat::RunUMAP(reduction = "pca", dims = 1:25)
+
+table(Idents(dat.masked))
+
+
+## Determine the orientation of the image and transform the data to be upright.
+## jpeg 500*500
+STutility::ImagePlot(dat.masked,
+                     method = "raster",
+                     annotate = T,
+                     ncol = 3)
+
+dat.masked <- dat.masked %>%
+  WarpImages(., verbose = T,
+             transforms = list("1" = list("mirror.x" = TRUE),
+                               "2" = list("mirror.x" = TRUE),
+                               "3" = list("mirror.y" = TRUE),
+                               "4" = list("mirror.x" = TRUE),
+                               "5" = list("mirror.x" = TRUE)))
+
+## jpeg 500*500
+STutility::ImagePlot(dat.masked,
+                     method = "raster",
+                     annotate = T,
+                     ncol = 3)
+
+### Label modification
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "NT2_2"] <- "NT1"
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "NT4_1"] <- "NT2"
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "NT4_2"] <- "NT5"
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "TREAT2_2"] <- "TREAT5"
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "TREAT6_1"] <- "TREAT4"
+dat.masked@meta.data$labels[dat.masked@meta.data$labels == "TREAT6_2"] <- "TREAT8"
+
+dat.masked$seurat_clusters_pca <- dat.masked$seurat_clusters
+
+### Save processed data
+#save(dat.masked, file = "dat.masked.RData")
+
+## modified label confirm
+## jpeg 800*600
+Seurat::VlnPlot(dat.masked,
+                features = c("nFeature_RNA", "nCount_RNA"),
+                group.by = "labels")
+
+Seurat::VlnPlot(dat.masked,
+                features = c("nFeature_SCT", "nCount_SCT"),
+                group.by = "labels")
+
+
+
+
+
+
+#### Figure out the data distribution ----
+## correlation plot
+## by labels
+agg.exp <- AggregateExpression(dat.masked, group.by = "labels")$SCT
+agg.exp_matrix <- as.matrix(agg.exp)
+cor.exp <- cor(agg.exp_matrix)
+cor.exp
+
+
+## jpeg 500*500 (labels)
+pheatmap::pheatmap(cor.exp,
+                   clustering_distance_cols = as.dist(1 - cor.exp),
+                   clustering_distance_rows = as.dist(1 - cor.exp),
+                   treeheight_col = 90,
+                   treeheight_row = 90,
+                   number_color = "black",
+                   display_numbers = TRUE,
+                   fontsize_number = 15,
+                   border_color = "white",
+                   color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
+
+corrplot(cor.exp,
+         addCoef.col = "black",
+         order = 'hclust',
+         hclust.method = "complete",
+         addrect = 2,
+         rect.col = "red",
+         number.cex = 0.7,
+         col.lim = c(0, 1),
+         is.corr = F,
+         col = COL2('RdBu'))
+
+
+## by idents
+agg.exp <- AggregateExpression(dat.masked, group.by = "idents")$SCT
+agg.exp_matrix <- as.matrix(agg.exp)
+cor.exp <- cor(agg.exp_matrix)
+cor.exp
+
+
+## jpeg 800*800 (idents)
+pheatmap::pheatmap(cor.exp,
+                   clustering_distance_cols = as.dist(1 - cor.exp),
+                   clustering_distance_rows = as.dist(1 - cor.exp),
+                   treeheight_col = 90,
+                   treeheight_row = 90,
+                   number_color = "black",
+                   display_numbers = TRUE,
+                   fontsize_number = 8,
+                   border_color = "white",
+                   color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
+
+corrplot(cor.exp,
+         addCoef.col = "black",
+         order = 'hclust',
+         hclust.method = "complete",
+         addrect = 2,
+         rect.col = "red",
+         number.cex = 0.7,
+         col.lim = c(0, 1),
+         is.corr = F,
+         col = COL2('RdBu'))
+
+
+
+
+
+## correlation plot
+## pheatmap
+## by condition
+combined_plot <- function(condition) {
+  agg.exp <- AggregateExpression(dat.masked %>%
+                                   SubsetSTData(condition == condition),
+                                 group.by = "ident")$SCT
+  agg.exp_matrix <- as.matrix(agg.exp)
+  cor.exp <- cor(agg.exp_matrix)
+  
+  pheatmap::pheatmap(cor.exp,
+                     main = paste0(cond),
+                     clustering_distance_cols = as.dist(1 - cor.exp),
+                     clustering_distance_rows = as.dist(1 - cor.exp),
+                     treeheight_col = 100,
+                     treeheight_row = 100,
+                     number_color = "black",
+                     display_numbers = TRUE,
+                     border_color = "white",
+                     color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
+}
+
+# Generate correlation plots for NT and TREAT conditions
+p1 <- combined_plot("NT")
+p2 <- combined_plot("TREAT")
+
+## jpeg 1600*800
+gridExtra::grid.arrange(p1$gtable, p2$gtable, ncol = 2)
+
+
+
+## corrplot
+## by condition
+combined_plot <- function(condition) {
+  agg.exp <- AggregateExpression(dat.masked %>%
+                                   SubsetSTData(condition == condition),
+                                 group.by = "ident")$SCT
+  agg.exp_matrix <- as.matrix(agg.exp)
+  cor.exp <- cor(agg.exp_matrix)
+  
+  corrplot(cor.exp,
+           title = paste0(condition),
+           addCoef.col = "black",
+           order = 'hclust',
+           addrect = 5,
+           rect.col = "red",
+           number.cex = 0.7,
+           col.lim = c(0, 1),
+           is.corr = F,
+           col = COL2('RdBu'),
+           mar=c(0,0,2,0))
+}
+
+# Save the combined plot as a JPEG
+par(mfrow=c(1,2))
+combined_plot("NT")
+combined_plot("TREAT")
+
+par(mfrow=c(1,1))
+
+
+
+
+
+
+
+
+#### Visualization ----
+## UMAP plots
+## jpeg 1300*600
+col_d3 <- colorRampPalette(c("#D62728FF", "#FF7F0EFF", "#BCBD22FF", "#2CA02CFF",
+                             "#17BECFFF", "#1F77B4FF", "#9467BDFF", "#E377C2FF"))
+col_cond <- c("#1F77B4FF", "#AEC7E8FF", "#6B6ECFFF", "#D62728FF","#FF9896FF", "#E6550DFF")
+
+p1 <- Seurat::DimPlot(dat.masked, group.by = "labels", reduction = "umap",
+                      cols = col_cond)
+p2 <- Seurat::DimPlot(dat.masked, group.by = "seurat_clusters_pca",
+                      label = TRUE, label.size = 8, reduction = "umap",
+                      cols = col_d3(length(unique(dat.masked@meta.data$seurat_clusters_pca))))
+p1 - p2
+
+
+
+
+## Feature plots
+## jpeg 800*1000
+cluster_col <- col_d3(length(unique(dat.masked@meta.data$seurat_clusters_pca)))
+names(cluster_col) <- 0:(length(unique(dat.masked@meta.data$seurat_clusters_pca))-1)
+
+STutility::ST.FeaturePlot(dat.masked,
+                          features = "seurat_clusters_pca",
+                          split.labels = F,
+                          ncol = 3,
+                          pt.size = 2.8,
+                          cols = cluster_col,
+                          label.by = "labels") &
+  labs(title = element_blank(),
+       strip.text = element_blank())
+
+
+## clsuter featureplot loop
+dir_path <- paste0(getwd(), "/02_3_umap_featureplot/cluster_featureplot/")
+
+
+if (!dir.exists(dir_path)){
+  dir.create(dir_path)
+}
+
+w = 1000
+h = 1200
+
+
+for(i in seq(1, length(unique(dat.masked@meta.data$seurat_clusters_pca)))){
+  jpeg(filename = file.path(dir_path,
+                            paste0("featureplot_cluster", i-1, ".jpeg")),
+       width = w,
+       height = h,
+       unit = "px",
+       quality = 100,
+       res = 100)
+  
+  cluster_col <- rep("grey85", length(unique(dat.masked@meta.data$seurat_clusters_pca)))
+  cluster_col[c(i)] <- "orange"
+  names(cluster_col) <- 0:(length(unique(dat.masked@meta.data$seurat_clusters_pca))-1)
+  
+  p <- STutility::ST.FeaturePlot(dat.masked,
+                                 features = "seurat_clusters_pca",
+                                 split.labels = F,
+                                 ncol = 3,
+                                 pt.size = 2.8,
+                                 cols = cluster_col,
+                                 label.by = "labels") &
+    labs(title = element_blank(),
+         strip.text = element_blank())
+  print(p)
+  
+  dev.off()
+  
+  print(paste0("***** featureplot clsuter", i-1, " : processing done! *****"))
+}
+
+
+
+
+
+### Further analysis and visualization ----
+## all conditions
+## jpeg 1000*1200
+## jpeg 800*1000
+cluster_col <- rep("grey78", length(unique(dat.masked@meta.data$seurat_clusters_pca)))
+cluster_col[c(1)] <- "#00B050"
+cluster_col[c(2)] <- "#584CDC"
+cluster_col[c(15)] <- "#D62728FF"
+cluster_col[c(11)] <- "#14BCBF"
+cluster_col[c(7)] <-  "#FFC000"
+names(cluster_col) <- 0:(length(unique(dat.masked@meta.data$seurat_clusters_pca))-1)
+STutility::ST.FeaturePlot(dat.masked,
+                          features = "seurat_clusters_pca",
+                          # indices = c(5:8),
+                          split.labels = F,
+                          ncol = 3,
+                          # pt.size = 2.8,
+                          pt.size = 3.5,
+                          cols = cluster_col,
+                          label.by = "labels") &
+  labs(title = element_blank(),
+       strip.text = element_blank())
+
+## jpeg 800*1000
+FeatureOverlay(dat.masked,
+               sampleids = 1:length(unique(dat.masked@meta.data$labels)),
+               features = "seurat_clusters_pca",
+               pt.size = 2.2,
+               pt.alpha = 0.5,
+               ncol = 3,
+               cols = cluster_col,
+               label.by = "labels",
+               show.legend = F) &
+  theme(plot.margin = margin(t = 0, r = 10, b = , l = 10, unit = "pt"))
