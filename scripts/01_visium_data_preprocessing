@@ -63,6 +63,7 @@ infoTable
 #### Load mouse brain Visium data ----
 dat <- STutility::InputFromTable(infotable = infoTable)
 dat <- STutility::LoadImages(dat, time.resolve = FALSE)
+## jpeg 500*500
 STutility::ImagePlot(dat, method = "raster")
 
 ## Perform manual annotation
@@ -137,19 +138,23 @@ plot_cropped_windows <- function(image_path, crop_geoms) {
     corners_list[[i]] <- as.numeric(unlist(split_data))
   }
   corners <- do.call(rbind, corners_list)
-  plot(im)
+  par(mar = c(0, 0, 0, 0))
+  plot(im, axes = FALSE, asp = 1)
   rect(xleft = corners[, 3],
        ybottom = corners[, 4],
        xright = corners[, 3] + corners[, 1],
-       ytop = corners[, 4] + corners[, 2])
+       ytop = corners[, 4] + corners[, 2],
+       border = "red", lwd = 1)
 }
 
 ## Confirm cropped section
+par(mfrow=c(2,2))
 plot_cropped_windows(STutility::GetStaffli(dat)@imgs[1], crop.geoms[c(1:2)])
 plot_cropped_windows(STutility::GetStaffli(dat)@imgs[2], crop.geoms[c(3:4)])
 plot_cropped_windows(STutility::GetStaffli(dat)@imgs[3], crop.geoms[c(5:6)])
 plot_cropped_windows(STutility::GetStaffli(dat)@imgs[4], crop.geoms[c(7:8)])
-
+par(mfrow=c(1,1))
+dev.off()
 
 
 
@@ -174,6 +179,7 @@ dat.cropped <- STutility::CropImages(dat.filtered3,
 
 ## Save the data for reproducibility
 #save(dat.cropped, file = "dat.cropped.RData")
+
 
 
 
