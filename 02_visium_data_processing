@@ -75,7 +75,7 @@ dat.masked$seurat_clusters_pca <- dat.masked$seurat_clusters
 ### Save processed data
 #save(dat.masked, file = "dat.masked.RData")
 
-## modified label confirm
+## Confirm modified labels
 ## jpeg 800*600
 Seurat::VlnPlot(dat.masked,
                 features = c("nFeature_RNA", "nCount_RNA"),
@@ -91,8 +91,7 @@ Seurat::VlnPlot(dat.masked,
 
 
 #### Figure out the data distribution ----
-## correlation plot
-## by labels
+## Correlation plot by labels
 agg.exp <- AggregateExpression(dat.masked, group.by = "labels")$SCT
 agg.exp_matrix <- as.matrix(agg.exp)
 cor.exp <- cor(agg.exp_matrix)
@@ -123,7 +122,7 @@ corrplot(cor.exp,
          col = COL2('RdBu'))
 
 
-## by idents
+## Correlation plot by idents
 agg.exp <- AggregateExpression(dat.masked, group.by = "idents")$SCT
 agg.exp_matrix <- as.matrix(agg.exp)
 cor.exp <- cor(agg.exp_matrix)
@@ -157,9 +156,7 @@ corrplot(cor.exp,
 
 
 
-## correlation plot
-## pheatmap
-## by condition
+## Combined correlation plots by condition
 combined_plot <- function(condition) {
   agg.exp <- AggregateExpression(dat.masked %>%
                                    SubsetSTData(condition == condition),
@@ -179,7 +176,6 @@ combined_plot <- function(condition) {
                      color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
 }
 
-# Generate correlation plots for NT and TREAT conditions
 p1 <- combined_plot("NT")
 p2 <- combined_plot("TREAT")
 
@@ -188,8 +184,7 @@ gridExtra::grid.arrange(p1$gtable, p2$gtable, ncol = 2)
 
 
 
-## corrplot
-## by condition
+## Combined corrplots by condition
 combined_plot <- function(condition) {
   agg.exp <- AggregateExpression(dat.masked %>%
                                    SubsetSTData(condition == condition),
@@ -210,13 +205,12 @@ combined_plot <- function(condition) {
            mar=c(0,0,2,0))
 }
 
-# Save the combined plot as a JPEG
 par(mfrow=c(1,2))
 combined_plot("NT")
 combined_plot("TREAT")
 
 par(mfrow=c(1,1))
-
+dev.off()
 
 
 
@@ -257,7 +251,7 @@ STutility::ST.FeaturePlot(dat.masked,
        strip.text = element_blank())
 
 
-## clsuter featureplot loop
+## Clsuter featureplot loop
 dir_path <- paste0(getwd(), "/02_3_umap_featureplot/cluster_featureplot/")
 
 
@@ -303,7 +297,7 @@ for(i in seq(1, length(unique(dat.masked@meta.data$seurat_clusters_pca)))){
 
 
 ### Further analysis and visualization ----
-## all conditions
+## All conditions
 ## jpeg 1000*1200
 ## jpeg 800*1000
 cluster_col <- rep("grey78", length(unique(dat.masked@meta.data$seurat_clusters_pca)))
@@ -341,8 +335,7 @@ FeatureOverlay(dat.masked,
 
 
 
-#### Final summary ----
-cat("Processing complete.\n")
-cat("Initial spots:", ncol(dat), "\n")
-cat("Filtered spots:", ncol(dat.filtered), "\n")
-cat("Final cropped spots:", ncol(dat.cropped), "\n")
+#### Save session info ----
+# Save session info for reproducibility
+session_info <- capture.output(sessionInfo())
+writeLines(session_info, "02_sessionInfo.txt")
