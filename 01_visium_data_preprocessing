@@ -178,8 +178,7 @@ dat.cropped <- STutility::CropImages(dat.filtered3,
 
 
 
-#### Final summary ----
-cat("Processing complete.\n")
-cat("Initial spots:", ncol(dat), "\n")
-cat("Filtered spots:", ncol(dat.filtered), "\n")
-cat("Final cropped spots:", ncol(dat.cropped), "\n")
+#### Save session info ----
+# Save session info for reproducibility
+session_info <- capture.output(sessionInfo())
+writeLines(session_info, "01_sessionInfo.txt")
