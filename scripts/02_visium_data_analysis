@@ -165,7 +165,7 @@ combined_plot <- function(condition) {
   cor.exp <- cor(agg.exp_matrix)
   
   pheatmap::pheatmap(cor.exp,
-                     main = paste0(cond),
+                     main = paste0(condition),
                      clustering_distance_cols = as.dist(1 - cor.exp),
                      clustering_distance_rows = as.dist(1 - cor.exp),
                      treeheight_col = 100,
