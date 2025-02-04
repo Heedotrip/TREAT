@@ -1,4 +1,4 @@
-## *Drugless Extracellular Hydrogels Enable the Reprogramming of Malignant Glioblastoma*
+# *Drugless Extracellular Hydrogels Enable the Reprogramming of Malignant Glioblastoma*
 *Jungwoo Kim<sup>1,2§</sup>, Jaeseung Yei<sup>1,2,3§</sup>, Daeun Lee<sup>4,5,6§</sup>, Seunghee Jeong<sup>4,5,6</sup>, Seungmin Ryu<sup>2,3</sup>, NaKyeong Lee<sup>1,3</sup>, Seong-Eun Ryu<sup>1,2,3</sup>, Donghee Son<sup>2,7,8</sup>, Chun Gwon Park<sup>1,3,9,10</sup>, Seong-Gi Kim<sup>2,3</sup>, Jaecheol Lee<sup>4,5,6,10,11</sup>\*, Minah Suh<sup>1,2,3,10,11,12</sup>\*, Mikyung Shin<sup>1,2,3,10</sup>\*<br>*
 
 *<sup>1</sup>Department of Intelligent Precision Healthcare Convergence, Institute for Cross-disciplinary Studies, Sungkyunkwan University, Suwon 16419, Republic of Korea<br>*
@@ -18,7 +18,7 @@
 *&ast; Correspondence to be addressed: mikyungshin@skku.edu; minahsuh@skku.edu; jaecheol@skku.edu*
 
 
-## Description
+# Description
 This repository contains the R code used to produce all the analyses and figures presente in the article.<br>
 
 The underlying data used for the analyses have been deposited to GEO. Space Ranger output found within the sipped files in folders. To generate these files, raw FastQ files from the Nova seq were processed with the Space Ranger pipiline (v. 1.2.2, 10x Genomics), where the reads were mapped to the mm10 (mouse) reference genome. Manual spot annotation was performed in the Rstudio.<br>
