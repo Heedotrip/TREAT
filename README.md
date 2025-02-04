@@ -1,7 +1,7 @@
 # *Drugless Extracellular Hydrogels Enable the Reprogramming of Malignant Glioblastoma*
-Jungwoo Kim<sup>§</sup>, Jaeseung Yei<sup>§</sup>, Daeun Lee<sup>§</sup>, Seunghee Jeong, Seungmin Ryu, NaKyeong Lee, Seong-Eun Ryu, Donghee Son, Chun Gwon Park, Seong-Gi Kim, Jaecheol Lee\*, Minah Suh\*, Mikyung Shin\*<br>
+Jungwoo Kim<sup>1,</sup><sup>2</sup><sup>§</sup>, Jaeseung Yei<sup>§</sup>, Daeun Lee<sup>§</sup>, Seunghee Jeong, Seungmin Ryu, NaKyeong Lee, Seong-Eun Ryu, Donghee Son, Chun Gwon Park, Seong-Gi Kim, Jaecheol Lee\*, Minah Suh\*, Mikyung Shin\*<br>
 § These authors contributed equally to the work<br>
-&ast; Corresponding authors
+&ast; Correspondence to be addressed: mikyungshin@skku.edu; minahsuh@skku.edu; jaecheol@skku.edu
 
 
 ## Description
