@@ -1,7 +1,7 @@
 ## *Drugless Extracellular Hydrogels Enable the Reprogramming of Malignant Glioblastoma*
 *Jungwoo Kim<sup>1,2§</sup>, Jaeseung Yei<sup>1,2,3§</sup>, Daeun Lee<sup>4,5,6§</sup>, Seunghee Jeong<sup>4,5,6</sup>, Seungmin Ryu<sup>2,3</sup>, NaKyeong Lee<sup>1,3</sup>, Seong-Eun Ryu<sup>1,2,3</sup>, Donghee Son<sup>2,7,8</sup>, Chun Gwon Park<sup>1,3,9,10</sup>, Seong-Gi Kim<sup>2,3</sup>, Jaecheol Lee<sup>4,5,6,10,11</sup>\*, Minah Suh<sup>1,2,3,10,11,12</sup>\*, Mikyung Shin<sup>1,2,3,10</sup>\*<br>*
 
-<sup>1</sup>Department of Intelligent Precision Healthcare Convergence, Institute for Cross-disciplinary Studies, Sungkyunkwan University, Suwon 16419, Republic of Korea
+*<sup>1</sup>Department of Intelligent Precision Healthcare Convergence, Institute for Cross-disciplinary Studies, Sungkyunkwan University, Suwon 16419, Republic of Korea<br>*
 <sup>2</sup>Center for Neuroscience Imaging Research, Institute for Basic Science, Suwon 16419, Republic of Korea
 <sup>3</sup>Department of Biomedical Engineering, Institute for Cross-disciplinary Studies, Sungkyunkwan University, Suwon 16419, Republic of Korea
 <sup>4</sup>Department of Biopharmaceutical Convergence, Sungkyunkwan University, Suwon 16419, Republic of Korea
