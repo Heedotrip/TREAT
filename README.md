@@ -15,16 +15,16 @@
 *<sup>12</sup>KIST-SKKU Brain Research Center, Suwon 16419, Republic of Korea<br>*
 
 *§ These authors contributed equally to the work<br>*
-*&ast; Correspondence to be addressed: mikyungshin@skku.edu; minahsuh@skku.edu; jaecheol@skku.edu*
+*&ast; For correspondence, please contact: mikyungshin@skku.edu; minahsuh@skku.edu; jaecheol@skku.edu*
 <br>
 <br>
 <br>
 <br>
 <br>
 # Description
-This repository contains the R code used to produce all the analyses and figures presente in the article.<br>
+This repository contains the R code used to generate all the analyses and figures presented in the article.<br>
 
-The underlying data used for the analyses have been deposited to GEO. Space Ranger output found within the sipped files in folders. To generate these files, raw FastQ files from the Nova seq were processed with the Space Ranger pipiline (v. 1.2.2, 10x Genomics), where the reads were mapped to the mm10 (mouse) reference genome. Manual spot annotation was performed in the Rstudio.<br>
+The underlying data used for the analyses have been deposited to GEO. Space Ranger output available within the zipped files in folders. To generate these files, raw FastQ files from the Nova seq were processed with the Space Ranger pipeline (v. 1.2.2, 10x Genomics), where the reads were aligned to the mm10 (mouse) reference genome. Manual spot annotation was performed in Rstudio.<br>
 
 Seurat/STUtility object were generated from the Space Ranger output files, using the R packages STUtility (v.1.1.1) and Seurat (v. 4.1.1) in R (v. 4.0.5) or using Seurat (v. 4.3.0.1) in R (v. 4.2.3).<br>
 
