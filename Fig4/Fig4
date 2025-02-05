@@ -44,7 +44,7 @@ library(STutility)
 
 #### Load spatial transcriptmoics dataset
 print(getwd())
-load("../files/dat.masked.RData")
+load("../../visium/dat.masked.RData")
 
 #### [Figure 4B] FeaturePlot
 #### FeaturePlot for Seurat Clusters
@@ -55,7 +55,6 @@ plot_col <- c("#1F77B4", "#FF7F0E", "#AEC7E8FF", "#2CA02C", "#F6CF71",
               "#C49C94FF", "#9EB9F3", "#F7B6D2FF", "#8BE0A4", "#E377C2",
               "#C7C7C7FF", "#66C5CC", "#D3B484", "#FE88B1", "#DBDB8DFF",
               "#9EDAE5FF", "#B3B3B3")
-
 
 #### Assign colors to each Seurat clusters
 cluster_col <- plot_col
@@ -92,7 +91,7 @@ Seurat::DimPlot(dat.masked,
 #### ==========================================================================
 
 #### Load spot annotation dataset
-load("../files/dat.masked.spot.info0826.RData")
+load("../../visium/dat.masked.spot.info0826.RData")
 
 #### [Figure 4D] Featureplot
 #### Featureplot for spot information annotated with histological regions
@@ -216,11 +215,10 @@ final_plot
 #### Visualization of -log10(Pvalue) enrichment of GO terms
 
 #### Load enrichment Data
-EnrichR <- list(read.delim("../files/Cluster0 600 GO_Biological_Process_2023_table.txt", 
+EnrichR <- list(read.delim("../data/Archieve2/Cluster0 600 GO_Biological_Process_2023_table.txt", 
                            header = TRUE, stringsAsFactors = FALSE),
-                read.delim("../files/cluster1 600 GO_Biological_Process_2023_table.txt", 
+                read.delim("../data/Archieve2/cluster1 600 GO_Biological_Process_2023_table.txt", 
                            header = TRUE, stringsAsFactors = FALSE))
-
 
 names(EnrichR) <- c("cluster0", "cluster1")
 
@@ -273,7 +271,7 @@ d1
 #### Visualization of relationships between genes and GO terms
 
 #### Load gene expression data
-res_df <- read.csv("../files/01_topGenes_pval0.01_avglog2FC1.csv",
+res_df <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC1.csv",
                    row.names = 1)
 head(res_df)
 
@@ -317,12 +315,11 @@ names(mycolors) <- group
 
 #### plotting
 #### edit  canvas size
-circos.par(
-  canvas.ylim = c(-1.7, 1.7),
-  canvas.xlim = c(-0.5, 1.1),
-  track.margin = c(0.01, 0.01),
-  track.height = 0.05,
-  start.degree = 90)
+circos.par(canvas.ylim = c(-1.7, 1.7),
+           canvas.xlim = c(-0.5, 1.1),
+           track.margin = c(0.01, 0.01),
+           track.height = 0.05,
+           start.degree = 90)
 
 cd <- chordDiagram(integrated_df,
                    order = group,
@@ -390,8 +387,7 @@ legend_FC <- Legend(title = "avg_log2FC",
                     direction = "horizontal",
                     title_gp = gpar(font = 2, fontsize = 10),
                     labels_gp = gpar(font = 1, fontsize = 10),
-                    legend_width = unit(5, "cm")
-)
+                    legend_width = unit(5, "cm"))
 
 h = dev.size()[2]
 legend_list = packLegend(legend_FC,
@@ -409,15 +405,15 @@ circos.clear()
 #### Figure 4JK: Visualization of specific genes
 #### ==========================================================================
 
-#### [Figure 4JK-1] Featureplot
-#### Visualization of a specific genes on seurat clusters
-
 #### Load data
-load("../files/dat.masked.RData")
+load("../../visium/dat.masked.RData")
 
 sample_order <- c("NT1", "NT2", "NT5",
                   "TREAT4", "TREAT5", "TREAT8")
 sample_order <- factor(sample_order, levels = sample_order, order = T)
+
+#### [Figure 4JK-1] Featureplot
+#### Visualization of a specific genes on seurat clusters
 
 dat.subset <- dat.masked %>%
   SubsetSTData(seurat_clusters_pca %in% c(0, 1))
@@ -450,7 +446,7 @@ combined_plot
 #### Visualization of a specific genes on seurat clusters
 
 #### Load the CSV file
-sig_genes <- read.csv("../files/01_topGenes_pval0.01_avglog2FC2.csv",
+sig_genes <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC2.csv",
                       row.names = 1,
                       check.names = F)
 
