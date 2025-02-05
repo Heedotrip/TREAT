@@ -1,0 +1,516 @@
+#### ==========================================================================
+#### Spatial Transcriptomics Analysis Pipeline
+#### ==========================================================================
+#### Author: [Seunghee Jeong]
+#### Date: [2025.02.04]
+#### Description: This script processes and analyzes spatial transcriptomics
+####              data for treated (TREAT) and Vehicle mouse brain samples.
+#### ==========================================================================
+
+
+#### ==========================================================================
+#### Load Necessary Packages
+#### ==========================================================================
+#### Install necessary package manager
+pkg <- c("BiocManager", "ggplot2", "dplyr", "tibble", "grid", "gridBase",
+         "magrittr", "viridis", "hdf5r", "patchwork", "ggpubr", "ggrastr",
+         "ggbreak", "magick", "harmony", "ggsci", "rcartocolor", "corrplot",
+         "scico", "glmGamPoi", "SeuratObject", "Seurat", "SeuratData", 
+         "pheatmap", "cowplot", "tidytable", "stringr", "tidyr")
+Biopkg <- c("clusterProfiler", "org.Mm.eg.db", "circlize", "ComplexHeatmap",
+            "enrichplot", "scales", "ggsci", "ggtreeExtra", "RColorBrewer")
+
+## Function to install and load packages
+install_and_load <- function(package_list) {
+  new_packages <- package_list[!(package_list %in% installed.packages()[,"Package"])]
+  if (length(new_packages) > 0) {
+    install.packages(new_packages)
+  }
+  sapply(package_list, require, character.only = TRUE)
+}
+
+install_and_load(c(pkg, Biopkg))
+
+#### Install and load STUtility
+if (!requireNamespace("STUtility", quietly = TRUE)) {
+  remotes::install_github("jbergenstrahle/STUtility")
+}
+library(STutility) 
+
+
+#### ==========================================================================
+#### Figure 4BC: Visualization of Seurat Clusters
+#### ==========================================================================
+
+#### Load spatial transcriptmoics dataset
+print(getwd())
+load("../../visium/dat.masked.RData")
+
+#### [Figure 4B] FeaturePlot
+#### FeaturePlot for Seurat Clusters
+
+#### Define colors
+plot_col <- c("#1F77B4", "#FF7F0E", "#AEC7E8FF", "#2CA02C", "#F6CF71",
+              "#F89C74", "#9467BD", "#8C564B", "#FF9896FF", "#C5B0D5FF",
+              "#C49C94FF", "#9EB9F3", "#F7B6D2FF", "#8BE0A4", "#E377C2",
+              "#C7C7C7FF", "#66C5CC", "#D3B484", "#FE88B1", "#DBDB8DFF",
+              "#9EDAE5FF", "#B3B3B3")
+
+
+#### Assign colors to each Seurat clusters
+cluster_col <- plot_col
+names(cluster_col) <- 0:(length(unique(dat.masked@meta.data$seurat_clusters_pca))-1)
+
+#### jpeg 610*620
+STutility::ST.FeaturePlot(dat.masked,
+                          features = "seurat_clusters_pca",
+                          split.labels = F,
+                          ncol = 3,
+                          pt.size = 1.9,
+                          cols = cluster_col,
+                          label.by = "labels") &
+  labs(title = element_blank(),
+       strip.text = element_blank())
+
+
+#### [Figure 4C] UMAP
+#### UMAP for Seurat Clusters
+
+#### jpeg 700*600
+Seurat::DimPlot(dat.masked,
+                group.by = "seurat_clusters_pca",
+                label = F,
+                label.size = 8,
+                reduction = "umap",
+                pt.size = 0.9,
+                alpha = 0.9,
+                cols = plot_col)
+
+
+#### ==========================================================================
+#### Figure 4DEFI: Spot Information Analysis
+#### ==========================================================================
+
+#### Load spot annotation dataset
+load("../../visium/dat.masked.spot.info0826.RData")
+
+#### [Figure 4D] Featureplot
+#### Featureplot for spot information annotated with histological regions
+
+#### Define colors
+plot_cols <- c("brain" = "gainsboro",
+               "tumor" = "#FFC000",
+               "peritumor" = "#2C4F80")
+
+#### jpeg 600*620
+STutility::ST.FeaturePlot(dat.masked,
+                          features = "spot_info",
+                          split.labels = F,
+                          ncol = 3,
+                          pt.size = 2,
+                          cols = plot_cols,
+                          label.by = "labels") &
+  labs(title = element_blank(),
+       strip.text = element_blank())
+
+
+#### [Figure 4E] UMAP
+#### UMAP for histological region annotations (Figure 4E)
+#### jpeg 700*600
+Seurat::DimPlot(dat.masked,
+                group.by = "spot_info",
+                label = F,
+                label.size = 8,
+                reduction = "umap",
+                cols = plot_cols,
+                pt.size = 0.9,
+                alpha = 0.9)
+
+
+#### [Figure 4F] Barplot
+#### Barplot of histological annotation proportions [all clusters]
+#### create frequency table of clusters per histological region
+
+cluster_df <- table(dat.masked@meta.data$seurat_clusters_pca,
+                    dat.masked@meta.data$spot_info) %>%
+  as.data.frame()
+
+#### jpeg 800*400
+ggplot(cluster_df,
+       aes(x = as.character(Var1),
+           y = Freq,
+           fill = Var2)) +
+  geom_col(position = "fill",
+           width = 0.7) +
+  labs(x = "Clusters",
+       y = "Proportion",
+       fill = "histological annotation") +
+  scale_x_discrete(limits = levels(cluster_df$Var1)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(values = plot_cols) +
+  theme_classic() +
+  theme(text = element_text(size = 14,
+                            color = "black"),
+        axis.text = element_text(color = "black"),
+        legend.title = element_text(size = 11.5),
+        legend.position = "top",
+        axis.title = element_text(size = 11.5, face = 1))
+
+
+#### [Figure 4G] Barplot
+#### Barplot of histological annotation proportions [specific clusters]
+
+#### select a cluster for detailed analysis
+#### 0 : Vehicle tumor
+#### 1 : TREAT tumor
+numb <- 0
+
+sample_order <- factor(c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8"),
+                       levels = c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8"))
+
+#### Subset dataset based on selected clusters
+dat.subset <- dat.masked %>%
+  SubsetSTData(seurat_clusters_pca == numb)
+
+#### Compute frequency table of histological annotations within selected clusters
+cluster_df <- table(dat.subset@meta.data$labels,
+                    dat.subset@meta.data$spot_info) %>%
+  as.data.frame()
+
+main_plot <- ggplot(cluster_df,
+                    aes(x = as.character(Var1),
+                        y = Freq, 
+                        fill = Var2)) +
+  geom_col(position = "fill", width = 0.7) +
+  labs(subtitle = paste0("Cluster ", numb), x = "Samples", y = "Proportion") +
+  scale_x_discrete(limits = levels(sample_order)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(values = plot_cols, drop = FALSE) +
+  theme_classic() + 
+  theme(text = element_text(size = 14, color = "black"),
+        axis.text = element_text(color = "black"),
+        legend.position = "none",
+        axis.title = element_text(size = 11.5, face = 1),
+        plot.subtitle = element_text(size = 12))
+
+legend_plot <- ggplot(data.frame(Var2 = names(plot_cols), value = 1),
+                      aes(fill = Var2)) +
+  geom_bar(aes(x = 1, y = value),
+           stat = "identity") +
+  scale_fill_manual(values = plot_cols, drop = FALSE) +
+  guides(fill = guide_legend(title = "histological\nannotation")) +
+  theme_void() +
+  theme(legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12))
+
+## jpeg 600*450
+final_plot <- cowplot::plot_grid(main_plot, get_legend(legend_plot), ncol = 2, rel_widths = c(4, 1))
+final_plot
+
+
+#### ==========================================================================
+#### Figure 4HI: Functional Analysis
+#### ==========================================================================
+
+#### [Figure 4H] Dotplot
+#### Visualization of -log10(Pvalue) enrichment of GO terms
+
+#### Load enrichment Data
+EnrichR <- list(read.delim("../data/Archieve2/Cluster0 600 GO_Biological_Process_2023_table.txt", 
+                           header = TRUE, stringsAsFactors = FALSE),
+                read.delim("../data/Archieve2/cluster1 600 GO_Biological_Process_2023_table.txt", 
+                           header = TRUE, stringsAsFactors = FALSE))
+
+
+names(EnrichR) <- c("cluster0", "cluster1")
+
+#### Process enrichment Data
+EnrichR <- lapply(EnrichR, function(df) {
+  df[, ncol(df)] <- gsub(";", "/", df[, ncol(df)])
+  df$OverlapRatio <- sapply(strsplit(df$Overlap, "/"), function(x) as.numeric(x[1]) / as.numeric(x[2]))
+  return(df)
+})
+
+#### Define selected categories
+category_selected <- unique(c("Ras Protein Signal Transduction (GO:0007265)",
+                              "Wnt Signaling Pathway (GO:0016055)",
+                              "ERBB Signaling Pathway (GO:0038127)",
+                              "MAPK Cascade (GO:0000165)",
+                              "ERK1 And ERK2 Cascade (GO:0070371)",
+                              "Cell Cycle G1/S Phase Transition (GO:0044843)",
+                              "Mitotic Cell Cycle Phase Transition (GO:0044772)"))
+
+#### Combine and filter enrichment data
+EnrichR_combined <- map2_df(EnrichR, names(EnrichR), ~ .x %>%
+                              filter(Term %in% category_selected) %>%
+                              mutate(Term = factor(Term, levels = Term[order(P.value, decreasing = TRUE)]),
+                                     cluster = .y,
+                                     ontology = "BP")
+)
+
+#### jpeg 600*1200
+d1 <- ggplot(EnrichR_combined,
+             aes(x = cluster,
+                 y = Term)) +
+  geom_point(aes(size = OverlapRatio,
+                 fill = -log10(P.value)),
+             shape = 21) + 
+  scale_fill_gradientn(colors = rev(c("#E64B35FF", "#F39B7F", "#3C5488FF")),
+                       # scale_fill_gradientn(colors = c("#DC0000FF", "#1F2C55FF"),
+                       name = "-log10(P.value)") +
+  theme_classic() +
+  theme(title = element_text(size = 10),
+        plot.subtitle = element_text(face = "italic", size = 10),
+        text = element_text(size = 12, color = "black"),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.text.x = element_text(size = 12, color = "black")) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 26)) +
+  facet_grid(scales = "free_y", space = "free_y")
+d1
+
+
+#### [Figure 4I] Chorddiagram
+#### Visualization of relationships between genes and GO terms
+
+#### Load gene expression data
+res_df <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC1.csv",
+                   row.names = 1)
+head(res_df)
+
+#### Process expression data with dotplot plotted before
+integrated_df <- d1$data %>%
+  .[, c("Term", "Genes")] %>%
+  as.data.frame() %>%
+  separate_longer_delim(data = ., cols = Genes, delim = "/") %>%
+  mutate(Genes = tolower(Genes)) %>%
+  left_join(., res_df %>%
+              .[, c("gene", "avg_log2FC")] %>%
+              mutate(gene = tolower(gene)),
+            by = c("Genes" = "gene")) %>%
+  mutate(Genes = str_to_title(Genes))
+
+head(integrated_df)
+
+#### Define color groups
+group <- c(levels(integrated_df$Term),
+           unique(integrated_df[order(integrated_df$avg_log2FC, decreasing = T),]$Genes))
+
+# prepare data for the legends
+uni.integrated_df <- integrated_df %>%
+  arrange(desc(avg_log2FC)) %>%
+  .[, c("Genes", "avg_log2FC")] %>%
+  unique()
+
+values <- uni.integrated_df$avg_log2FC
+log_values <- log1p(values)  
+normalized_values <- (log_values - min(log_values)) / (max(log_values) - min(log_values))
+color_steps <- 100
+color_palette <- colorRampPalette(brewer.pal(9, "Blues"))(color_steps)
+matched_colors <- color_palette[round(normalized_values * (color_steps - 1)) + 1]
+
+mycolors <- c(rev(viridis(length(unique(integrated_df$Term)), option = "D")),
+              c(matched_colors))
+darken_viridis <- colorspace::darken(viridis(10), amount = 0.03)
+mycolors <- c(colorRampPalette(rev(darken_viridis))(length(unique(integrated_df$Term))),
+              c(matched_colors))
+names(mycolors) <- group
+
+#### plotting
+#### edit  canvas size
+circos.par(
+  canvas.ylim = c(-1.7, 1.7),
+  canvas.xlim = c(-0.5, 1.1),
+  track.margin = c(0.01, 0.01),
+  track.height = 0.05,
+  start.degree = 90)
+
+cd <- chordDiagram(integrated_df,
+                   order = group,
+                   grid.col = mycolors,
+                   
+                   ## plot only grid (no labels, no axis)
+                   annotationTrack = "grid", 
+                   preAllocateTracks = 2,
+                   
+                   ## adjust grid width and spacing
+                   annotationTrackHeight = c(0.03, 0.01),
+                   
+                   scale = TRUE,
+                   big.gap = 20,
+                   
+                   ## adjust height of all links
+                   h.ratio = 0.8,
+                   
+                   ## transparency
+                   transparency = 0.05
+                   
+)
+
+#### Add labels to chord diagram
+circos.track(track.index = 2, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter,
+              CELL_META$ylim[1],
+              CELL_META$sector.index[CELL_META$sector.index %in% integrated_df$Genes],
+              facing = "reverse.clockwise",
+              niceFacing = F,
+              adj = c(1, 0.5),
+              cex = 0.6
+  )
+}, bg.border = NA)
+
+#### Add legends to chord diagram (GO term)
+legend_GO <- Legend(title = "GO term",
+                    labels = rev(str_wrap(unique(integrated_df$Term),
+                                          width = 26)),
+                    type = "point",
+                    background = rev(unique(cd$col)),
+                    labels_gp = gpar(font = 1.5))
+
+#### Add legends to chord diagram2 (avg_log2FC)
+min.value <- round(min(as.numeric(uni.integrated_df$avg_log2FC)))
+max.value <- round(max(as.numeric(uni.integrated_df$avg_log2FC)))
+mid.value <- mean(c(min.value, max.value))
+
+legend_breaks <- seq(min.value, max.value, length.out = 5)
+
+if (max.value > 0 & min.value >= 0) {
+  col_fun = colorRamp2(c(max.value, mid.value, min.value),
+                       rev(colorRampPalette(brewer.pal(9, "Blues"))(3)))
+} else if (max.value > 0 & min.value <= 0) {
+  col_fun = colorRamp2(c(max.value, 0, min.value),
+                       c("#DC0000FF", "white", "blue4"))
+} else if (max.value <= 0 & min.value <= 0) {
+  col_fun = colorRamp2(c(max.value, min.value),
+                       c("white", "blue4"))
+}
+
+legend_FC <- Legend(title = "avg_log2FC",
+                    col_fun = col_fun,
+                    at = legend_breaks,
+                    direction = "horizontal",
+                    title_gp = gpar(font = 2, fontsize = 10),
+                    labels_gp = gpar(font = 1, fontsize = 10),
+                    legend_width = unit(5, "cm")
+)
+
+h = dev.size()[2]
+legend_list = packLegend(legend_FC,
+                         legend_GO,
+                         direction = "vertical")
+
+#### jpeg 900*600
+draw(legend_list, x = unit(0.97, "npc"), y = unit(0.07, "npc"), just = c("right", "bottom"))
+
+#### Clear the circos plot
+circos.clear()
+
+
+
+
+
+
+#### ==========================================================================
+#### Figure 4JK: Visualization of specific genes
+#### ==========================================================================
+
+#### [Figure 4JK-1] Featureplot
+#### Visualization of a specific genes on seurat clusters
+
+#### Load data
+load("../../visium/dat.masked.RData")
+
+sample_order <- c("NT1", "NT2", "NT5",
+                  "TREAT4", "TREAT5", "TREAT8")
+sample_order <- factor(sample_order, levels = sample_order, order = T)
+
+dat.subset <- dat.masked %>%
+  SubsetSTData(seurat_clusters_pca %in% c(0, 1))
+
+heat.colors <- c("gainsboro", "lemonchiffon", "orange", "darkorange2", "brown4")
+
+markers <- "Ccnd1"
+markers <- "Mapk1"
+
+p1 <- FeaturePlot(dat.subset, features = markers) + 
+  scale_color_gradientn(colors = heat.colors,
+                        labels = scales::number_format(accuracy = 0.1)) +
+  theme(legend.position = "right")
+
+p2 <- ST.FeaturePlot(dat.subset,
+                     features = markers,
+                     ncol = 3,
+                     cols = heat.colors,
+                     grid.ncol = 1,
+                     pt.size = 1.2,
+                     show.sb = F) + 
+  theme(legend.position = "none")
+
+#### 900*450
+combined_plot <- cowplot::plot_grid(p1, p2, ncol = 2, rel_widths = c(1.3, 1))
+combined_plot
+
+
+
+
+#### [Figure 4JK-2] violinplot
+#### Visualization of a specific genes on seurat clusters
+
+#### Load the CSV file
+sig_genes <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC2.csv",
+                      row.names = 1,
+                      check.names = F)
+
+markers <- "Ccnd1"
+markers <- "Mapk1"
+
+sample_order <- c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8")
+sample_order <- factor(sample_order, levels = sample_order, order = TRUE)
+
+col_mine <- c("NT" = "#4682B4",
+              "TREAT" = "#D62728FF")
+
+cluster_of_interest <- "0"
+
+#### Subset the data for the specific cluster
+subset_data <- dat.masked %>%
+  STutility::SubsetSTData(seurat_clusters == cluster_of_interest)
+
+#### Fetch the marker data
+marker_data <- FetchData(subset_data, vars = markers)
+
+#### Combine the subset data and marker data
+combined_data <- cbind(subset_data[[]], marker_data)
+
+#### Reshape the data for ggplot2
+melted_data <- reshape2::melt(combined_data, measure.vars = markers)
+
+#### Create the violin plot
+main_plot <- ggplot(melted_data, aes(labels, value, fill = condition)) +
+  geom_violin(scale = "width") +
+  scale_fill_manual(values = col_mine, drop = FALSE) +
+  scale_x_discrete(limits = levels(sample_order)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.1)) +
+  facet_wrap(~seurat_clusters, ncol = 5) +
+  labs(title = markers) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_line(linetype = "longdash", colour = "lightgrey"),
+        strip.text = element_text(size = 14, colour = "black"),
+        legend.position = "none",
+        axis.text.x = element_text(size = 12, colour = "black", angle = 90,
+                                   vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.title = element_text(size = 12, colour = "black")) +
+  labs(y = "Norm. Expr.", x = "")
+
+legend_plot <- ggplot(data.frame(Var2 = names(col_mine), value = 1), aes(fill = Var2)) +
+  geom_bar(aes(x = 1, y = value), stat = "identity") +
+  scale_fill_manual(values = col_mine, drop = FALSE) +
+  guides(fill = guide_legend(title = "condition")) +
+  theme_classic() +
+  theme(legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12))
+
+#### 800*400
+final_plot <- cowplot::plot_grid(main_plot, get_legend(legend_plot), ncol = 2, rel_widths = c(4, 1))
+final_plot
