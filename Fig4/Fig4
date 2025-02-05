@@ -44,7 +44,7 @@ library(STutility)
 
 #### Load spatial transcriptmoics dataset
 print(getwd())
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
 #### [Figure 4B] FeaturePlot
 #### FeaturePlot for Seurat Clusters
@@ -92,7 +92,7 @@ Seurat::DimPlot(dat.masked,
 #### ==========================================================================
 
 #### Load spot annotation dataset
-load("../../visium/dat.masked.spot.info0826.RData")
+load("../files/dat.masked.spot.info0826.RData")
 
 #### [Figure 4D] Featureplot
 #### Featureplot for spot information annotated with histological regions
@@ -216,9 +216,9 @@ final_plot
 #### Visualization of -log10(Pvalue) enrichment of GO terms
 
 #### Load enrichment Data
-EnrichR <- list(read.delim("../data/Archieve2/Cluster0 600 GO_Biological_Process_2023_table.txt", 
+EnrichR <- list(read.delim("../files/Cluster0 600 GO_Biological_Process_2023_table.txt", 
                            header = TRUE, stringsAsFactors = FALSE),
-                read.delim("../data/Archieve2/cluster1 600 GO_Biological_Process_2023_table.txt", 
+                read.delim("../files/cluster1 600 GO_Biological_Process_2023_table.txt", 
                            header = TRUE, stringsAsFactors = FALSE))
 
 
@@ -273,7 +273,7 @@ d1
 #### Visualization of relationships between genes and GO terms
 
 #### Load gene expression data
-res_df <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC1.csv",
+res_df <- read.csv("../files/01_topGenes_pval0.01_avglog2FC1.csv",
                    row.names = 1)
 head(res_df)
 
@@ -413,7 +413,7 @@ circos.clear()
 #### Visualization of a specific genes on seurat clusters
 
 #### Load data
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
 sample_order <- c("NT1", "NT2", "NT5",
                   "TREAT4", "TREAT5", "TREAT8")
@@ -450,7 +450,7 @@ combined_plot
 #### Visualization of a specific genes on seurat clusters
 
 #### Load the CSV file
-sig_genes <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC2.csv",
+sig_genes <- read.csv("../files/01_topGenes_pval0.01_avglog2FC2.csv",
                       row.names = 1,
                       check.names = F)
 
