@@ -37,8 +37,8 @@ library(STutility)
 #### ==========================================================================
 
 #### Load dataset
-load("dat.masked.RData")
-load("dat.orig.RData")
+load("../files/dat.masked.RData")
+load("../files/dat.orig.RData")
 
 #### [Supple Figure 20A] histogram + featureplot
 #### Visualization of discarded regions that have low quality
@@ -302,7 +302,7 @@ final_plot
 #### ==========================================================================
 
 #### Load data
-dt <- read.csv("../../visium/dat.subset.singleR.ImmGenData.wilcox.csv")
+dt <- read.csv("../files/dat.subset.singleR.ImmGenData.wilcox.csv")
 
 dt.sum <- dt[,c("labels", "seurat_clusters_pca", "cell_deconvolution")] %>%
   group_by(cell_deconvolution, seurat_clusters_pca) %>%
