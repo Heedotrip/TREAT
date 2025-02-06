@@ -44,7 +44,7 @@ library(STutility)
 
 #### Load spatial transcriptmoics dataset
 print(getwd())
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
 #### [Figure 4B] FeaturePlot
 #### FeaturePlot for Seurat Clusters
@@ -91,7 +91,7 @@ Seurat::DimPlot(dat.masked,
 #### ==========================================================================
 
 #### Load spot annotation dataset
-load("../../visium/dat.masked.spot.info0826.RData")
+load("../files/dat.spot.info.RData")
 
 #### [Figure 4D] Featureplot
 #### Featureplot for spot information annotated with histological regions
@@ -162,10 +162,10 @@ ggplot(cluster_df,
 #### select a cluster for detailed analysis
 #### 0 : Vehicle tumor
 #### 1 : TREAT tumor
-numb <- 0
+numb <- 1
 
-sample_order <- factor(c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8"),
-                       levels = c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8"))
+sample_order <- factor(c("Vehicle1", "Vehicle2", "Vehicle5", "TREAT4", "TREAT5", "TREAT8"),
+                       levels = c("Vehicle1", "Vehicle2", "Vehicle5", "TREAT4", "TREAT5", "TREAT8"))
 
 #### Subset dataset based on selected clusters
 dat.subset <- dat.masked %>%
@@ -239,14 +239,14 @@ category_selected <- unique(c("Ras Protein Signal Transduction (GO:0007265)",
                               "Mitotic Cell Cycle Phase Transition (GO:0044772)"))
 
 #### Combine and filter enrichment data
-EnrichR_combined <- map2_df(EnrichR, names(EnrichR), ~ .x %>%
-                              filter(Term %in% category_selected) %>%
-                              mutate(Term = factor(Term, levels = Term[order(P.value, decreasing = TRUE)]),
-                                     cluster = .y,
-                                     ontology = "BP")
+EnrichR_combined <- purrr::map2_df(EnrichR, names(EnrichR), ~ .x %>%
+                                     filter(Term %in% category_selected) %>%
+                                     mutate(Term = factor(Term, levels = Term[order(P.value, decreasing = TRUE)]),
+                                            cluster = .y,
+                                            ontology = "BP")
 )
 
-#### jpeg 600*1200
+#### jpeg 600*600
 d1 <- ggplot(EnrichR_combined,
              aes(x = cluster,
                  y = Term)) +
@@ -271,7 +271,7 @@ d1
 #### Visualization of relationships between genes and GO terms
 
 #### Load gene expression data
-res_df <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC1.csv",
+res_df <- read.csv("../files/01_topGenes_pval0.01_avglog2FC1.csv",
                    row.names = 1)
 head(res_df)
 
@@ -406,9 +406,9 @@ circos.clear()
 #### ==========================================================================
 
 #### Load data
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
-sample_order <- c("NT1", "NT2", "NT5",
+sample_order <- c("Vehicle1", "Vehicle2", "Vehicle5",
                   "TREAT4", "TREAT5", "TREAT8")
 sample_order <- factor(sample_order, levels = sample_order, order = T)
 
@@ -453,10 +453,10 @@ sig_genes <- read.csv("../../visium/01_topGenes_pval0.01_avglog2FC2.csv",
 markers <- "Ccnd1"
 markers <- "Mapk1"
 
-sample_order <- c("NT1", "NT2", "NT5", "TREAT4", "TREAT5", "TREAT8")
+sample_order <- c("Vehicle1", "Vehicle2", "Vehicle5", "TREAT4", "TREAT5", "TREAT8")
 sample_order <- factor(sample_order, levels = sample_order, order = TRUE)
 
-col_mine <- c("NT" = "#4682B4",
+col_mine <- c("Vehicle" = "#4682B4",
               "TREAT" = "#D62728FF")
 
 cluster_of_interest <- "0"
@@ -501,6 +501,6 @@ legend_plot <- ggplot(data.frame(Var2 = names(col_mine), value = 1), aes(fill = 
   theme(legend.text = element_text(size = 12),
         legend.title = element_text(size = 12))
 
-#### 800*400
+#### 400*400
 final_plot <- cowplot::plot_grid(main_plot, get_legend(legend_plot), ncol = 2, rel_widths = c(4, 1))
 final_plot
