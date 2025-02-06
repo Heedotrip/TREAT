@@ -43,7 +43,7 @@ library(STutility)
 
 #### Load spatial transcriptmoics dataset
 print(getwd())
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
 #### [Figure 5A] FeaturePlot
 #### FeaturePlot for peritumor clusters
@@ -92,7 +92,7 @@ Seurat::DimPlot(dat.masked,
 #### Visiualization of proportions of peritumors between conditions
 
 #### Load spot annotation dataset
-load("../../visium/dat.masked.spot.info0826.RData")
+load("../files/dat.spot.info.RData")
 
 plot_cols <- c("#9467BDFF", "#E377C2FF", "gainsboro")
 
@@ -115,7 +115,7 @@ cluster_df <- table(dat.masked.subset@meta.data$condition,
   ungroup()
 
 #### Ensure y-axis is ordered from NT to TREAT
-cluster_df$Var1 <- factor(cluster_df$Var1, levels = c("TREAT", "NT"))
+cluster_df$Var1 <- factor(cluster_df$Var1, levels = c("TREAT", "Vehicle"))
 
 #### 400*400
 ggplot(cluster_df,
@@ -138,6 +138,7 @@ ggplot(cluster_df,
         axis.text = element_text(color = "black"),
         legend.title = element_text(size = 11.5),
         axis.title = element_text(size = 11.5, face = 1),
+        legend.position = "",
         axis.title.x = element_blank())
 
 
@@ -214,7 +215,7 @@ d1
 #### Visualization of relationships between genes and GO terms
 
 #### Load gene expression data
-res_df <- read.csv("../../visium/614_topGenes_pval0.01_avglog2FC1.csv",
+res_df <- read.csv("../files/614_topGenes_pval0.01_avglog2FC1.csv",
                    row.names = 1)
 head(res_df)
 
@@ -348,11 +349,11 @@ circos.clear()
 #### ==========================================================================
 
 #### Load data
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
-EnrichR <- list(read.delim("/Users/hee/workspace/project/2024_GBM/github/paper/data/Archieve2/cluster6 all GO_Biological_Process_2023_table.txt",
+EnrichR <- list(read.delim("../files/cluster6 all GO_Biological_Process_2023_table.txt",
                            header = TRUE, stringsAsFactors = FALSE),
-                read.delim("/Users/hee/workspace/project/2024_GBM/github/paper/data/Archieve2/cluster14 all GO_Biological_Process_2023_table.txt",
+                read.delim("../files/cluster14 all GO_Biological_Process_2023_table.txt",
                            header = TRUE, stringsAsFactors = FALSE))
 
 names(EnrichR) <- c("cluster6", "cluster14")
@@ -380,7 +381,7 @@ EnrichR_combined <- EnrichR_combined %>%
   mutate(cluster = factor(cluster, levels = c("cluster6", "cluster14")))
 
 
-term_subset <- term_list[1]
+term <- term_list[1]
 
 for (i in term_subset){
   markers <- EnrichR_combined%>%
@@ -453,9 +454,9 @@ for (i in term_subset){
   }
   
   #E Now generate plots and extract the legend from the first plot
-  p1 <- create_plot_with_markers(dat.masked, sample_numb = 1, sample_name = "NT1", marker_genes = markers, legend = TRUE)
-  p2 <- create_plot_with_markers(dat.masked, sample_numb = 2, sample_name = "NT5", marker_genes = markers, legend = FALSE)
-  p3 <- create_plot_with_markers(dat.masked, sample_numb = 3, sample_name = "NT2", marker_genes = markers, legend = FALSE)
+  p1 <- create_plot_with_markers(dat.masked, sample_numb = 1, sample_name = "Vehicle1", marker_genes = markers, legend = TRUE)
+  p2 <- create_plot_with_markers(dat.masked, sample_numb = 2, sample_name = "Vehicle5", marker_genes = markers, legend = FALSE)
+  p3 <- create_plot_with_markers(dat.masked, sample_numb = 3, sample_name = "Vehicle2", marker_genes = markers, legend = FALSE)
   p4 <- create_plot_with_markers(dat.masked, sample_numb = 4, sample_name = "TREAT5", marker_genes = markers, legend = FALSE)
   p5 <- create_plot_with_markers(dat.masked, sample_numb = 5, sample_name = "TREAT8", marker_genes = markers, legend = FALSE)
   p6 <- create_plot_with_markers(dat.masked, sample_numb = 6, sample_name = "TREAT4", marker_genes = markers, legend = FALSE)
@@ -487,7 +488,7 @@ p
 #### ==========================================================================
 
 #### Load data
-load("../../visium/dat.masked.RData")
+load("../files/dat.masked.RData")
 
 #### Define markers
 marker <- "Mal"
@@ -537,19 +538,20 @@ p_markers <- cbind(dat.masked[[]],
                    FetchData(dat.masked,
                              vars = marker)) %>%
   reshape2::melt(measure.vars = marker) %>%
-  filter(seurat_clusters_pca %in% c(3, 6, 7, 14)) %>% 
+  filter(seurat_clusters_pca %in% c(3, 6, 7, 14)) %>%
+  mutate(condition = factor(condition, levels = c("Vehicle", "TREAT"))) %>%
   ggplot(aes(condition, value, fill = condition)) +
   geom_boxplot(outlier.shape = NA) +
   theme_classic() +
   geom_jitter(position = position_jitter(width = 0.2),
               size = 0.5,
               alpha = 0.6) +
-  geom_signif(comparisons = list(c("NT", "TREAT")),
+  geom_signif(comparisons = list(c("Vehicle", "TREAT")),
               test = "wilcox.test",
               y_position = c(y_max + y_expansion) * 0.85,
               textsize = 4,
               map_signif_level = function(p) sprintf("%.20f", p)) +
-  scale_fill_manual(breaks = c("NT", "TREAT"),
+  scale_fill_manual(breaks = c("Vehicle", "TREAT"),
                     values = plot_cols) +
   facet_wrap(~seurat_clusters_pca, ncol = 11) +
   theme(panel.background = element_rect(fill = "white"),
@@ -566,3 +568,6 @@ p_markers <- cbind(dat.masked[[]],
 
 #### 600*450
 p_markers
+
+
+
